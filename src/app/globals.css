@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fa;
+  --foreground: #182230;
+
+  /* Nivora brand tokens */
+  --navy-950: #0d1424;
+  --navy-900: #121a2e;
+  --navy-800: #1a2338;
+  --lavender-300: #aab3fb;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+  --slate-500: #6b7280;
+  --slate-300: #cbd5e1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-dm-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
-}
+  --font-display: var(--font-fraunces), Georgia, serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Expose brand tokens as Tailwind utilities:
+     bg-navy-950, text-lavender-300, bg-indigo-600, etc. */
+  --color-navy-950: var(--navy-950);
+  --color-navy-900: var(--navy-900);
+  --color-navy-800: var(--navy-800);
+  --color-lavender-300: var(--lavender-300);
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-700: var(--indigo-700);
+  --color-slate-500: var(--slate-500);
+  --color-slate-300: var(--slate-300);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

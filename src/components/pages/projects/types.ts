@@ -1,0 +1,1 @@
+export type { ProjectOut as Project } from "@/services/api";
