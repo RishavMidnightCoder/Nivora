@@ -9,12 +9,26 @@ import InviteMemberModal from "../../widgets/InviteMemberModal";
 import RoleEditorModal from "../../widgets/RoleEditorModal";
 import MemberEditorModal from "../../widgets/memberEditorModal";
 import { teamApi, MemberOut, RoleOut } from "@/services/api";
+import { usePermission } from "../../../hooks/usePermission";
 
 export default function Team() {
   const [members, setMembers] = useState<MemberOut[]>([]);
   const [roles, setRoles] = useState<RoleOut[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"members" | "roles">("members");
+
+  const canViewMembers = usePermission("view_members");
+  const canViewRoles = usePermission("view_roles");
+  const canCreateMembers = usePermission("create_members");
+  const canEditMembers = usePermission("edit_members");
+  const canDeleteMembers = usePermission("delete_members");
+  const canToggleMembers = usePermission("activate_deactivate_members");
+  const canCreateRoles = usePermission("create_roles");
+  const canEditRoles = usePermission("edit_roles");
+  const canDeleteRoles = usePermission("delete_roles");
+
+  const [tab, setTab] = useState<"members" | "roles">(
+    canViewMembers ? "members" : "roles",
+  );
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -30,8 +44,8 @@ export default function Team() {
     setLoading(true);
     try {
       const [membersData, rolesData] = await Promise.all([
-        teamApi.listMembers(),
-        teamApi.listRoles(),
+        canViewMembers ? teamApi.listMembers() : Promise.resolve([]),
+        canViewRoles ? teamApi.listRoles() : Promise.resolve([]),
       ]);
       setMembers(membersData);
       setRoles(rolesData);
@@ -40,13 +54,14 @@ export default function Team() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canViewMembers, canViewRoles]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   async function toggleMemberStatus(id: number) {
+    if (!canToggleMembers) return;
     try {
       await teamApi.toggleStatus(id);
       setMembers((current) =>
@@ -58,6 +73,7 @@ export default function Team() {
   }
 
   async function removeMember(id: number) {
+    if (!canDeleteMembers) return;
     try {
       await teamApi.removeMember(id);
       setMembers((current) => current.filter((m) => m.id !== id));
@@ -67,6 +83,7 @@ export default function Team() {
   }
 
   async function cancelInvite(id: number) {
+    if (!canDeleteMembers) return;
     try {
       await teamApi.cancelInvite(id);
       setMembers((current) =>
@@ -79,6 +96,7 @@ export default function Team() {
   }
 
   async function sendInvite(id: number) {
+    if (!canCreateMembers) return;
     const member = members.find((m) => m.id === id);
     if (!member) return;
     try {
@@ -94,12 +112,13 @@ export default function Team() {
   }
 
   function openEditMember(id: number) {
+    if (!canEditMembers) return;
     const member = members.find((m) => m.id === id);
     if (member) setEditingMember(member);
   }
 
   async function saveMemberRole(roleId: number) {
-    if (!editingMember) return;
+    if (!editingMember || !canEditMembers) return;
     setSavingMember(true);
     try {
       await teamApi.updateMember(editingMember.id, { role_id: roleId });
@@ -114,6 +133,7 @@ export default function Team() {
   }
 
   async function inviteMember(payload: { email: string; role_id: number }) {
+    if (!canCreateMembers) return;
     setInviting(true);
     try {
       await teamApi.inviteMember(payload);
@@ -133,6 +153,7 @@ export default function Team() {
     description: string;
     permissions: string[];
   }) {
+    if (payload.id ? !canEditRoles : !canCreateRoles) return;
     setSavingRole(true);
     try {
       if (payload.id) {
@@ -159,6 +180,7 @@ export default function Team() {
   }
 
   async function deleteRole(id: number) {
+    if (!canDeleteRoles) return;
     try {
       await teamApi.deleteRole(id);
       setRoles((current) => current.filter((r) => r.id !== id));
@@ -173,6 +195,9 @@ export default function Team() {
   const pendingCount = members.filter(
     (m) => m.status.toLowerCase() === "pending",
   ).length;
+
+  const canCreateInCurrentTab =
+    tab === "members" ? canCreateMembers : canCreateRoles;
 
   return (
     <div className="mx-auto max-w-[1500px] p-[38px] pb-[60px] max-[1100px]:px-[24px] max-[760px]:p-[24px_14px_28px]">
@@ -200,49 +225,55 @@ export default function Team() {
       <section className="rounded-[9px] border border-[#e5e8ed] bg-white">
         <div className="flex items-center justify-between border-b border-[#e5e8ed] p-[20px_22px_16px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-3">
           <div className="flex items-center gap-[5px] max-[760px]:w-full">
-            <button
-              onClick={() => setTab("members")}
-              className={`cursor-pointer rounded-[6px] px-3 py-[9px] text-[12px] font-bold max-[760px]:flex-1 ${
-                tab === "members"
-                  ? "bg-[#edf1ff] text-[#284bce]"
-                  : "text-[#778293]"
-              }`}
-            >
-              Members{" "}
-              <span className="ml-[5px] text-[10px] opacity-75">
-                {members.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab("roles")}
-              className={`cursor-pointer rounded-[6px] px-3 py-[9px] text-[12px] font-bold max-[760px]:flex-1 ${
-                tab === "roles"
-                  ? "bg-[#edf1ff] text-[#284bce]"
-                  : "text-[#778293]"
-              }`}
-            >
-              Roles{" "}
-              <span className="ml-[5px] text-[10px] opacity-75">
-                {roles.length}
-              </span>
-            </button>
+            {canViewMembers && (
+              <button
+                onClick={() => setTab("members")}
+                className={`cursor-pointer rounded-[6px] px-3 py-[9px] text-[12px] font-bold max-[760px]:flex-1 ${
+                  tab === "members"
+                    ? "bg-[#edf1ff] text-[#284bce]"
+                    : "text-[#778293]"
+                }`}
+              >
+                Members{" "}
+                <span className="ml-[5px] text-[10px] opacity-75">
+                  {members.length}
+                </span>
+              </button>
+            )}
+            {canViewRoles && (
+              <button
+                onClick={() => setTab("roles")}
+                className={`cursor-pointer rounded-[6px] px-3 py-[9px] text-[12px] font-bold max-[760px]:flex-1 ${
+                  tab === "roles"
+                    ? "bg-[#edf1ff] text-[#284bce]"
+                    : "text-[#778293]"
+                }`}
+              >
+                Roles{" "}
+                <span className="ml-[5px] text-[10px] opacity-75">
+                  {roles.length}
+                </span>
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={() =>
-              tab === "members"
-                ? setShowInvite(true)
-                : (setEditingRole({
-                    name: "",
-                    description: "",
-                    permissions: [],
-                  }),
-                  setShowRoleEditor(true))
-            }
-            className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-[7px] bg-[#284bce] px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#284bce2c] max-[760px]:w-full"
-          >
-            {tab === "members" ? "Invite member" : "Create role"}
-          </button>
+          {canCreateInCurrentTab && (
+            <button
+              onClick={() =>
+                tab === "members"
+                  ? setShowInvite(true)
+                  : (setEditingRole({
+                      name: "",
+                      description: "",
+                      permissions: [],
+                    }),
+                    setShowRoleEditor(true))
+              }
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-[7px] bg-[#284bce] px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#284bce2c] max-[760px]:w-full"
+            >
+              {tab === "members" ? "Invite member" : "Create role"}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -250,7 +281,11 @@ export default function Team() {
             Loading…
           </div>
         ) : tab === "members" ? (
-          members.length === 0 ? (
+          !canViewMembers ? (
+            <div className="p-[40px] text-center text-[12px] text-[#9ba4b0]">
+              You don&apos;t have permission to view members.
+            </div>
+          ) : members.length === 0 ? (
             <div className="p-[40px] text-center text-[12px] text-[#9ba4b0]">
               No members yet.
             </div>
@@ -262,8 +297,16 @@ export default function Team() {
               onEdit={openEditMember}
               onCancelInvite={cancelInvite}
               onSendInvite={sendInvite}
+              canEdit={canEditMembers}
+              canDelete={canDeleteMembers}
+              canToggleStatus={canToggleMembers}
+              canInvite={canCreateMembers}
             />
           )
+        ) : !canViewRoles ? (
+          <div className="p-[40px] text-center text-[12px] text-[#9ba4b0]">
+            You don&apos;t have permission to view roles.
+          </div>
         ) : roles.length === 0 ? (
           <div className="p-[40px] text-center text-[12px] text-[#9ba4b0]">
             No roles yet.
@@ -276,11 +319,13 @@ export default function Team() {
               setShowRoleEditor(true);
             }}
             onDelete={deleteRole}
+            canEdit={canEditRoles}
+            canDelete={canDeleteRoles}
           />
         )}
       </section>
 
-      {showInvite && (
+      {showInvite && canCreateMembers && (
         <InviteMemberModal
           roles={roles}
           onClose={() => setShowInvite(false)}
@@ -288,7 +333,7 @@ export default function Team() {
           inviting={inviting}
         />
       )}
-      {showRoleEditor && (
+      {showRoleEditor && (editingRole?.id ? canEditRoles : canCreateRoles) && (
         <RoleEditorModal
           role={editingRole}
           onClose={() => {
@@ -299,7 +344,7 @@ export default function Team() {
           saving={savingRole}
         />
       )}
-      {editingMember && (
+      {editingMember && canEditMembers && (
         <MemberEditorModal
           member={editingMember}
           roles={roles}

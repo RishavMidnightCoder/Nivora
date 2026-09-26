@@ -15,6 +15,7 @@ import {
   MemberOut,
   TaskAttachmentOut,
 } from "@/services/api";
+import { usePermission } from "../../../hooks/usePermission";
 
 const STATUS_TABS = ["All", "Todo", "In progress", "Review", "Done"];
 
@@ -23,6 +24,10 @@ export default function Tasks() {
   const [projects, setProjects] = useState<ProjectOut[]>([]);
   const [members, setMembers] = useState<MemberOut[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const canCreateTasks = usePermission("create_tasks");
+  const canEditTasks = usePermission("edit_tasks");
+  const canDeleteTasks = usePermission("delete_tasks");
 
   const [activeTab, setActiveTab] = useState("All");
   const [showEditor, setShowEditor] = useState(false);
@@ -69,6 +74,7 @@ export default function Tasks() {
     activeTab === "All" ? tasks : tasks.filter((t) => t.status === activeTab);
 
   function openCreate() {
+    if (!canCreateTasks) return;
     if (projects.length === 0) {
       toast.error("Create a project before adding tasks");
       return;
@@ -92,6 +98,7 @@ export default function Tasks() {
   }
 
   async function openEdit(task: TaskOut) {
+    if (!canEditTasks) return;
     setEditingTask(task);
     setShowEditor(true);
     try {
@@ -103,6 +110,7 @@ export default function Tasks() {
   }
 
   async function deleteTask(id: number) {
+    if (!canDeleteTasks) return;
     try {
       await taskApi.deleteTask(id);
       toast.success("Task deleted");
@@ -124,6 +132,7 @@ export default function Tasks() {
     },
     pendingFiles: File[],
   ) {
+    if (editingTask ? !canEditTasks : !canCreateTasks) return;
     setSaving(true);
     try {
       let taskId: number;
@@ -158,7 +167,7 @@ export default function Tasks() {
   }
 
   async function deleteAttachment(attachmentId: number) {
-    if (!editingTask) return;
+    if (!editingTask || !canEditTasks) return;
     try {
       await taskApi.deleteAttachment(editingTask.id, attachmentId);
       setAttachments((current) => current.filter((a) => a.id !== attachmentId));
@@ -183,12 +192,14 @@ export default function Tasks() {
           </p>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-[7px] bg-indigo-600 px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#4f46e52c] max-[760px]:w-full max-[760px]:justify-center"
-        >
-          <Plus size={16} /> New task
-        </button>
+        {canCreateTasks && (
+          <button
+            onClick={openCreate}
+            className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-[7px] bg-indigo-600 px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#4f46e52c] max-[760px]:w-full max-[760px]:justify-center"
+          >
+            <Plus size={16} /> New task
+          </button>
+        )}
       </div>
 
       <section className="rounded-[9px] border border-slate-200 bg-white">
@@ -225,11 +236,13 @@ export default function Tasks() {
             onEdit={openEdit}
             onDelete={deleteTask}
             onViewAttachments={viewAttachments}
+            canEdit={canEditTasks}
+            canDelete={canDeleteTasks}
           />
         )}
       </section>
 
-      {showEditor && (
+      {showEditor && (canCreateTasks || canEditTasks) && (
         <TaskEditorModal
           task={editingTask}
           projects={projects}

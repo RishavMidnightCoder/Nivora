@@ -4,8 +4,10 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { RoleOut } from "@/services/api";
 import {
-  AVAILABLE_PERMISSIONS,
+  applicationModules,
+  PERMISSION_DEFINITIONS,
   PermissionKey,
+  getModuleKeys,
 } from "../../utils/permissionModules";
 import { useLockBodyScroll } from "@/components/elements/useLockBodyScroll";
 
@@ -40,6 +42,21 @@ export default function RoleEditorModal({
       const next = new Set(current);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      return next;
+    });
+  }
+
+  function toggleModule(group: string) {
+    const moduleKeys = getModuleKeys(group);
+    const allSelected = moduleKeys.every((k) => permissions.has(k));
+
+    setPermissions((current) => {
+      const next = new Set(current);
+      if (allSelected) {
+        moduleKeys.forEach((k) => next.delete(k));
+      } else {
+        moduleKeys.forEach((k) => next.add(k));
+      }
       return next;
     });
   }
@@ -111,33 +128,67 @@ export default function RoleEditorModal({
             </small>
           </div>
 
-          <div className="overflow-hidden rounded-[8px] border border-[#e5e8ed]">
-            {AVAILABLE_PERMISSIONS.map((perm, index) => (
-              <label
-                key={perm.key}
-                className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8f9fb] ${
-                  index !== AVAILABLE_PERMISSIONS.length - 1
-                    ? "border-b border-[#e5e8ed]"
-                    : ""
-                }`}
-              >
-                <span className="flex flex-col gap-[2px]">
-                  <b className="text-[12px] font-bold text-[#172238]">
-                    {perm.label}
-                  </b>
-                  <small className="text-[10px] text-[#9ba4b0]">
-                    {perm.description}
-                  </small>
-                </span>
-                <input
-                  type="checkbox"
-                  aria-label={perm.label}
-                  checked={permissions.has(perm.key)}
-                  onChange={() => togglePermission(perm.key)}
-                  className="h-[15px] w-[15px] flex-shrink-0 cursor-pointer accent-[#284bce]"
-                />
-              </label>
-            ))}
+          <div className="flex flex-col gap-4">
+            {applicationModules.map((group) => {
+              const modulePerms = PERMISSION_DEFINITIONS.filter(
+                (p) => p.group === group,
+              );
+              if (modulePerms.length === 0) return null;
+
+              const moduleKeys = getModuleKeys(group);
+              const allSelected = moduleKeys.every((k) =>
+                permissions.has(k),
+              );
+
+              return (
+                <div
+                  key={group}
+                  className="overflow-hidden rounded-[8px] border border-[#e5e8ed]"
+                >
+                  <div className="flex items-center justify-between bg-[#f8f9fb] px-4 py-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-[#536174]">
+                      {group}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleModule(group)}
+                      className="cursor-pointer text-[10px] font-bold text-[#284bce]"
+                    >
+                      {allSelected ? "Deselect all" : "Select all"}
+                    </button>
+                  </div>
+
+                  {modulePerms.map((perm, index) => (
+                    <label
+                      key={perm.key}
+                      className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8f9fb] ${
+                        index !== modulePerms.length - 1
+                          ? "border-b border-[#e5e8ed]"
+                          : ""
+                      }`}
+                    >
+                      <span className="flex flex-col gap-[2px]">
+                        <b className="text-[12px] font-bold text-[#172238]">
+                          {perm.label}
+                        </b>
+                        <small className="text-[10px] text-[#9ba4b0]">
+                          {perm.description}
+                        </small>
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={perm.label}
+                        checked={permissions.has(perm.key)}
+                        onChange={() =>
+                          togglePermission(perm.key as PermissionKey)
+                        }
+                        className="h-[15px] w-[15px] flex-shrink-0 cursor-pointer accent-[#284bce]"
+                      />
+                    </label>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 

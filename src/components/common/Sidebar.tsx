@@ -17,13 +17,7 @@ import {
 } from "lucide-react";
 import { signOut } from "@/services/session";
 import { taskApi } from "@/services/api";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-  { icon: ClipboardList, label: "My tasks", href: "/tasks" },
-  { icon: Target, label: "Projects", href: "/projects" },
-  { icon: Users, label: "Team", href: "/team" },
-];
+import { usePermission } from "../../hooks/usePermission";
 
 interface SidebarProps {
   profileMenuOpen: boolean;
@@ -37,14 +31,27 @@ export default function Sidebar({
   const pathname = usePathname();
   const [openTaskCount, setOpenTaskCount] = useState<number | null>(null);
 
+  const canViewTasks = usePermission("view_tasks");
+  const canViewProjects = usePermission("view_projects");
+  const canViewTeamPage = usePermission("view_team_page");
+  const canViewSettings = usePermission("view_settings");
+
+  const navItems = [
+    { icon: LayoutDashboard, label: "Overview", href: "/dashboard", visible: true },
+    { icon: ClipboardList, label: "My tasks", href: "/tasks", visible: canViewTasks },
+    { icon: Target, label: "Projects", href: "/projects", visible: canViewProjects },
+    { icon: Users, label: "Team", href: "/team", visible: canViewTeamPage },
+  ].filter((item) => item.visible);
+
   const loadTaskCount = useCallback(async () => {
+    if (!canViewTasks) return;
     try {
       const tasks = await taskApi.listTasks();
       setOpenTaskCount(tasks.filter((t) => t.status !== "Done").length);
     } catch {
       // sidebar count is non-critical — fail silently, no toast needed
     }
-  }, []);
+  }, [canViewTasks]);
 
   useEffect(() => {
     loadTaskCount();
@@ -60,6 +67,14 @@ export default function Sidebar({
       document.body.style.overflow = "";
     };
   }, [profileMenuOpen]);
+
+  // A user clicking "Sign out" is a deliberate, successful action — not
+  // an expired session, so this must NOT trigger session.ts's default
+  // "Your session has expired" toast (that message is reserved for the
+  // automatic 401 -> "app:logout" path in AuthListener).
+  function handleManualSignOut() {
+    signOut(false);
+  }
 
   return (
     <>
@@ -107,17 +122,19 @@ export default function Sidebar({
           >
             <UserCircle size={18} /> Profile
           </Link>
-          <Link
-            href="/settings"
-            onClick={onCloseProfileMenu}
-            className="flex min-h-[44px] w-full items-center gap-3 rounded-[7px] px-3 text-left text-[13px] font-bold text-[#778293]"
-          >
-            <Settings size={18} /> Settings
-          </Link>
+          {canViewSettings && (
+            <Link
+              href="/settings"
+              onClick={onCloseProfileMenu}
+              className="flex min-h-[44px] w-full items-center gap-3 rounded-[7px] px-3 text-left text-[13px] font-bold text-[#778293]"
+            >
+              <Settings size={18} /> Settings
+            </Link>
+          )}
           <button
             onClick={() => {
               onCloseProfileMenu();
-              signOut();
+              handleManualSignOut();
             }}
             className="flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-[7px] px-3 text-left text-[13px] font-bold text-[#778293]"
           >
@@ -191,16 +208,18 @@ export default function Sidebar({
         </nav>
 
         <div className="mt-auto max-[760px]:hidden">
-          <Link
-            href="/settings"
-            className={`flex min-h-[38px] w-full items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-bold ${
-              pathname.startsWith("/settings") ? "bg-[#edf1ff] text-[#284bce]" : "text-[#778293]"
-            }`}
-          >
-            <Settings size={17} /> Settings
-          </Link>
+          {canViewSettings && (
+            <Link
+              href="/settings"
+              className={`flex min-h-[38px] w-full items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-bold ${
+                pathname.startsWith("/settings") ? "bg-[#edf1ff] text-[#284bce]" : "text-[#778293]"
+              }`}
+            >
+              <Settings size={17} /> Settings
+            </Link>
+          )}
           <button
-            onClick={signOut}
+            onClick={handleManualSignOut}
             className="flex min-h-[38px] w-full cursor-pointer items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-bold text-[#778293]"
           >
             <LogIn size={17} /> Sign out

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
 import AuthListener from "@/components/providers/AuthListener";
+import { StoreProvider } from "@/store/StoreProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,9 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthListener />
-        {children}
-        <Toaster position="top-center" richColors />
+        <StoreProvider>
+          <AuthListener />
+          {children}
+          <Toaster position="top-center" richColors />
+        </StoreProvider>
       </body>
     </html>
   );

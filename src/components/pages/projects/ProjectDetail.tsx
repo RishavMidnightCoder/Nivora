@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Clock3, UserPlus } from "lucide-react";
+import { ArrowLeft, Check, Clock3 } from "lucide-react";
 import { ProjectOut, MemberOut } from "@/services/api";
 import { toneFor } from "./utils";
 import type { ProjectStats } from "./Projects";
@@ -10,6 +10,10 @@ interface ProjectDetailProps {
   onBack: () => void;
   onEdit: (project: ProjectOut) => void;
   onToggleMember: (memberId: number) => void;
+  /** edit_projects permission */
+  canEdit: boolean;
+  /** add_project_members permission */
+  canManageMembers: boolean;
 }
 
 export default function ProjectDetail({
@@ -19,6 +23,8 @@ export default function ProjectDetail({
   onBack,
   onEdit,
   onToggleMember,
+  canEdit,
+  canManageMembers,
 }: ProjectDetailProps) {
   const tone = toneFor(project.color);
 
@@ -44,12 +50,14 @@ export default function ProjectDetail({
             <p className="mt-1 text-[12px] text-[#778293]">{project.description}</p>
           </div>
         </div>
-        <button
-          onClick={() => onEdit(project)}
-          className="cursor-pointer whitespace-nowrap rounded-[7px] border border-[#e5e8ed] px-[13px] py-[8px] text-[12px] font-bold text-[#526075] hover:bg-[#f7f8fa]"
-        >
-          Edit project
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => onEdit(project)}
+            className="cursor-pointer whitespace-nowrap rounded-[7px] border border-[#e5e8ed] px-[13px] py-[8px] text-[12px] font-bold text-[#526075] hover:bg-[#f7f8fa]"
+          >
+            Edit project
+          </button>
+        )}
       </div>
 
       <div className="mb-[22px] grid grid-cols-4 gap-[12px] max-[700px]:grid-cols-2">
@@ -71,7 +79,9 @@ export default function ProjectDetail({
           <div className="border-b border-[#e5e8ed] p-[16px_18px]">
             <h3 className="text-[13px] font-bold text-[#172238]">Project members</h3>
             <p className="mt-1 text-[11px] text-[#778293]">
-              Check a teammate to assign them, uncheck to remove them from this project.
+              {canManageMembers
+                ? "Check a teammate to assign them, uncheck to remove them from this project."
+                : "People assigned to this project."}
             </p>
           </div>
           <div className="max-h-[320px] overflow-y-auto p-[10px_14px]">
@@ -81,7 +91,9 @@ export default function ProjectDetail({
               members.map((member) => (
                 <label
                   key={member.id}
-                  className="flex cursor-pointer items-center gap-[11px] rounded-[7px] px-[6px] py-[9px] hover:bg-[#f7f8fa]"
+                  className={`flex items-center gap-[11px] rounded-[7px] px-[6px] py-[9px] ${
+                    canManageMembers ? "cursor-pointer hover:bg-[#f7f8fa]" : ""
+                  }`}
                 >
                   <span className="grid h-[28px] w-[28px] flex-shrink-0 place-items-center rounded-full bg-[#7189df] text-[10px] font-extrabold text-white">
                     {(member.FullName || member.email).slice(0, 2).toUpperCase()}
@@ -93,8 +105,9 @@ export default function ProjectDetail({
                   <input
                     type="checkbox"
                     checked={project.member_ids.includes(member.id)}
-                    onChange={() => onToggleMember(member.id)}
-                    className="h-[15px] w-[15px] accent-[#284bce]"
+                    onChange={() => canManageMembers && onToggleMember(member.id)}
+                    disabled={!canManageMembers}
+                    className="h-[15px] w-[15px] accent-[#284bce] disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </label>
               ))

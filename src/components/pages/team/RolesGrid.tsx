@@ -6,9 +6,11 @@ interface RolesGridProps {
   roles: RoleOut[];
   onEdit: (role: RoleOut) => void;
   onDelete: (id: number) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
-export default function RolesGrid({ roles, onEdit, onDelete }: RolesGridProps) {
+export default function RolesGrid({ roles, onEdit, onDelete, canEdit, canDelete }: RolesGridProps) {
   return (
     <div className="grid grid-cols-2 max-[760px]:grid-cols-1 gap-[14px] p-[20px_22px_24px]">
       {roles.map((role) => (
@@ -21,13 +23,15 @@ export default function RolesGrid({ roles, onEdit, onDelete }: RolesGridProps) {
               <b className="text-[13px] text-[#172238]">{role.name}</b>
               <small className="text-[10px] text-[#778293]">{role.description}</small>
             </div>
-            <button
-              onClick={() => onEdit(role)}
-              aria-label={`Edit ${role.name}`}
-              className="cursor-pointer text-[#7b8797]"
-            >
-              <MoreHorizontal size={18} />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => onEdit(role)}
+                aria-label={`Edit ${role.name}`}
+                className="cursor-pointer text-[#7b8797]"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+            )}
           </div>
 
           <div className="my-[20px] flex justify-between gap-[10px] text-[10px] text-[#778293]">
@@ -51,20 +55,28 @@ export default function RolesGrid({ roles, onEdit, onDelete }: RolesGridProps) {
             </Tooltip>
           </div>
 
-          <div className="flex justify-between border-t border-[#e5e8ed] pt-[12px]">
-            <button
-              onClick={() => onEdit(role)}
-              className="cursor-pointer text-[10px] font-extrabold text-[#284bce]"
-            >
-              Edit role
-            </button>
-            <button
-              onClick={() => onDelete(role.id)}
-              className="cursor-pointer text-[10px] font-extrabold text-[#d45b63]"
-            >
-              Delete
-            </button>
-          </div>
+          {(canEdit || canDelete) && (
+            <div className="flex justify-between border-t border-[#e5e8ed] pt-[12px]">
+              {canEdit ? (
+                <button
+                  onClick={() => onEdit(role)}
+                  className="cursor-pointer text-[10px] font-extrabold text-[#284bce]"
+                >
+                  Edit role
+                </button>
+              ) : (
+                <span />
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => onDelete(role.id)}
+                  className="cursor-pointer text-[10px] font-extrabold text-[#d45b63]"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

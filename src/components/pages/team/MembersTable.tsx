@@ -46,6 +46,14 @@ interface MembersTableProps {
   onEdit: (id: number) => void;
   onCancelInvite?: (id: number) => Promise<void>;
   onSendInvite?: (id: number) => Promise<void>;
+  /** activate_deactivate_members permission is required to remove a member entirely */
+  canDelete: boolean;
+  /** edit_members permission */
+  canEdit: boolean;
+  /** activate_deactivate_members permission */
+  canToggleStatus: boolean;
+  /** create_members permission (covers both first invite and re-invite) */
+  canInvite: boolean;
 }
 
 export default function MembersTable({
@@ -55,6 +63,10 @@ export default function MembersTable({
   onEdit,
   onCancelInvite,
   onSendInvite,
+  canDelete,
+  canEdit,
+  canToggleStatus,
+  canInvite,
 }: MembersTableProps) {
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
 
@@ -83,6 +95,8 @@ export default function MembersTable({
       });
     }
   }
+
+  const showActionsColumn = canEdit || canDelete || canToggleStatus || canInvite;
 
   return (
     <div className="max-[760px]:overflow-x-auto">
@@ -139,56 +153,68 @@ export default function MembersTable({
               })}
             </span>
 
-            <div className="flex items-center justify-end gap-[9px]">
-              {isPending ? (
-                <button
-                  onClick={() => handleCancelInvite(member.id)}
-                  disabled={loadingIds.has(member.id)}
-                  className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#d35d67] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loadingIds.has(member.id) ? (
-                    <Loader2 size={11} className="animate-spin" />
-                  ) : (
-                    "Cancel invite"
-                  )}
-                </button>
-              ) : status === "active" ? (
-                <button
-                  onClick={() => onToggleStatus(member.id)}
-                  className="cursor-pointer whitespace-nowrap text-[10px] font-extrabold text-[#284bce]"
-                >
-                  Deactivate
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleSendInvite(member.id)}
-                  disabled={loadingIds.has(member.id)}
-                  className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#284bce] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loadingIds.has(member.id) ? (
-                    <Loader2 size={11} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Send size={11} /> Send invite
-                    </>
-                  )}
-                </button>
-              )}
-              <button
-                onClick={() => onEdit(member.id)}
-                aria-label={`Edit ${member.email}`}
-                className="cursor-pointer text-[#c3c9d1] hover:text-[#284bce]"
-              >
-                <Pencil size={15} />
-              </button>
-              <button
-                onClick={() => onRemove(member.id)}
-                aria-label={`Delete ${member.email}`}
-                className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
+            {showActionsColumn ? (
+              <div className="flex items-center justify-end gap-[9px]">
+                {isPending
+                  ? canDelete && (
+                      <button
+                        onClick={() => handleCancelInvite(member.id)}
+                        disabled={loadingIds.has(member.id)}
+                        className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#d35d67] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {loadingIds.has(member.id) ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          "Cancel invite"
+                        )}
+                      </button>
+                    )
+                  : status === "active"
+                    ? canToggleStatus && (
+                        <button
+                          onClick={() => onToggleStatus(member.id)}
+                          className="cursor-pointer whitespace-nowrap text-[10px] font-extrabold text-[#284bce]"
+                        >
+                          Deactivate
+                        </button>
+                      )
+                    : canInvite && (
+                        <button
+                          onClick={() => handleSendInvite(member.id)}
+                          disabled={loadingIds.has(member.id)}
+                          className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#284bce] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {loadingIds.has(member.id) ? (
+                            <Loader2 size={11} className="animate-spin" />
+                          ) : (
+                            <>
+                              <Send size={11} /> Send invite
+                            </>
+                          )}
+                        </button>
+                      )}
+                {canEdit && (
+                  <button
+                    onClick={() => onEdit(member.id)}
+                    aria-label={`Edit ${member.email}`}
+                    className="cursor-pointer text-[#c3c9d1] hover:text-[#284bce]"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => onRemove(member.id)}
+                    aria-label={`Delete ${member.email}`}
+                    className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <span />
+            )}
           </div>
         );
       })}

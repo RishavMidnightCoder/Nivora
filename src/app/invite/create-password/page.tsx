@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import HeroPanel from "@/components/widgets/Heropanel";
 import Logo from "@/components/elements/Logo";
@@ -16,6 +16,8 @@ function CreatePasswordForm() {
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -122,24 +124,46 @@ function CreatePasswordForm() {
 
         <label className="flex flex-col gap-2 text-xs font-bold text-slate-600">
           Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            className="min-h-[44px] rounded-lg border border-slate-200 px-3 text-sm text-navy-900 outline-none focus:border-indigo-400"
-          />
+          <div className="relative flex items-center">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="ms-reveal-none min-h-[44px] w-full rounded-lg border border-slate-200 px-3 pr-10 text-sm text-navy-900 outline-none focus:border-indigo-400"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 flex cursor-pointer items-center text-slate-400 hover:text-slate-600"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </label>
 
         <label className="flex flex-col gap-2 text-xs font-bold text-slate-600">
           Confirm password
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Repeat your password"
-            className="min-h-[44px] rounded-lg border border-slate-200 px-3 text-sm text-navy-900 outline-none focus:border-indigo-400"
-          />
+          <div className="relative flex items-center">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat your password"
+              className="ms-reveal-none min-h-[44px] w-full rounded-lg border border-slate-200 px-3 pr-10 text-sm text-navy-900 outline-none focus:border-indigo-400"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((v) => !v)}
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 flex cursor-pointer items-center text-slate-400 hover:text-slate-600"
+              tabIndex={-1}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </label>
 
         {error && <p className="text-xs font-semibold text-red-500">{error}</p>}
@@ -156,6 +180,13 @@ function CreatePasswordForm() {
           This invitation link is single-use — if it&rsquo;s expired, ask your admin to resend it.
         </p>
       </form>
+
+      <style jsx global>{`
+        .ms-reveal-none::-ms-reveal,
+        .ms-reveal-none::-ms-clear {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }

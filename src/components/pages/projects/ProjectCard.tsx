@@ -8,9 +8,11 @@ interface ProjectCardProps {
   stats: ProjectStats;
   onOpen: (id: number) => void;
   onDelete: (id: number) => void;
+  /** delete_projects permission */
+  canDelete: boolean;
 }
 
-export default function ProjectCard({ project, stats, onOpen, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, stats, onOpen, onDelete, canDelete }: ProjectCardProps) {
   const tone = toneFor(project.color);
 
   return (
@@ -22,16 +24,18 @@ export default function ProjectCard({ project, stats, onOpen, onDelete }: Projec
         <span className={`grid h-[36px] w-[36px] place-items-center rounded-[8px] text-[15px] font-extrabold ${tone.bg} ${tone.text}`}>
           {project.name[0]}
         </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(project.id);
-          }}
-          aria-label={`Delete ${project.name}`}
-          className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
-        >
-          <Trash2 size={15} />
-        </button>
+        {canDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(project.id);
+            }}
+            aria-label={`Delete ${project.name}`}
+            className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
 
       <p className="mb-1 text-[10px] font-bold uppercase tracking-[.06em] text-[#9ba4b0]">{project.description}</p>

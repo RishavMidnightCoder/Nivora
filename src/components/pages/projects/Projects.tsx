@@ -8,6 +8,7 @@ import ProjectsGrid from "./ProjectsGrid";
 import ProjectDetail from "./ProjectDetail";
 import ProjectEditorModal from "../../widgets/ProjectEditorModal";
 import { projectApi, teamApi, taskApi, ProjectOut, MemberOut, TaskOut } from "@/services/api";
+import { usePermission } from "../../../hooks/usePermission";
 
 export interface ProjectStats {
   taskCount: number;
@@ -19,6 +20,11 @@ export default function Projects() {
   const [members, setMembers] = useState<MemberOut[]>([]);
   const [tasks, setTasks] = useState<TaskOut[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const canCreateProjects = usePermission("create_projects");
+  const canEditProjects = usePermission("edit_projects");
+  const canDeleteProjects = usePermission("delete_projects");
+  const canAddProjectMembers = usePermission("add_project_members");
 
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [editingProject, setEditingProject] = useState<Partial<ProjectOut> | null>(null);
@@ -77,16 +83,19 @@ export default function Projects() {
   const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
   function openCreate() {
+    if (!canCreateProjects) return;
     setEditingProject(null);
     setShowEditor(true);
   }
 
   function openEdit(project: ProjectOut) {
+    if (!canEditProjects) return;
     setEditingProject(project);
     setShowEditor(true);
   }
 
   async function saveProject(payload: { id?: number; name: string; description: string; due: string; color: string }) {
+    if (payload.id ? !canEditProjects : !canCreateProjects) return;
     try {
       if (payload.id) {
         await projectApi.updateProject(payload.id, {
@@ -114,6 +123,7 @@ export default function Projects() {
   }
 
   async function deleteProject(id: number) {
+    if (!canDeleteProjects) return;
     try {
       await projectApi.deleteProject(id);
       toast.success("Project deleted");
@@ -125,7 +135,7 @@ export default function Projects() {
   }
 
   async function toggleMember(memberId: number) {
-    if (!selectedProject) return;
+    if (!selectedProject || !canAddProjectMembers) return;
     const isAssigned = selectedProject.member_ids.includes(memberId);
     try {
       const updated = isAssigned
@@ -155,7 +165,7 @@ export default function Projects() {
             Track progress across every project you are part of.
           </p>
         </div>
-        {!selectedProject && (
+        {!selectedProject && canCreateProjects && (
           <button
             onClick={openCreate}
             className="inline-flex min-h-[38px] cursor-pointer items-center justify-center gap-2 rounded-[7px] bg-[#284bce] px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#284bce2c] max-[600px]:w-full"
@@ -182,15 +192,23 @@ export default function Projects() {
             onBack={() => setSelectedProjectId(null)}
             onEdit={openEdit}
             onToggleMember={toggleMember}
+            canEdit={canEditProjects}
+            canManageMembers={canAddProjectMembers}
           />
         ) : projects.length === 0 ? (
           <div className="p-[40px] text-center text-[12px] text-[#9ba4b0]">No projects yet.</div>
         ) : (
-          <ProjectsGrid projects={projects} stats={projectStats} onOpen={setSelectedProjectId} onDelete={deleteProject} />
+          <ProjectsGrid
+            projects={projects}
+            stats={projectStats}
+            onOpen={setSelectedProjectId}
+            onDelete={deleteProject}
+            canDelete={canDeleteProjects}
+          />
         )}
       </section>
 
-      {showEditor && (
+      {showEditor && (editingProject?.id ? canEditProjects : canCreateProjects) && (
         <ProjectEditorModal
           project={editingProject}
           onClose={() => {
