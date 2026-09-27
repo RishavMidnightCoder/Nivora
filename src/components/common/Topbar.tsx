@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Search,
   Bell,
   Menu,
   X,
@@ -12,6 +11,7 @@ import {
   CircleAlert,
   Check,
 } from "lucide-react";
+import ThemeToggle from "@/components/elements/ThemeToggle";
 
 interface NotificationPreview {
   id: number;
@@ -81,16 +81,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-[18px] max-[760px]:gap-[10px]">
-        <div className="flex h-[34px] w-[220px] max-[760px]:w-[min(44vw,180px)] items-center gap-2 rounded-[6px] border border-[#e5e8ed] px-[9px] text-[#9da6b2]">
-          <Search size={16} />
-          <input
-            placeholder="Search anything..."
-            className="w-full min-w-0 border-0 text-[11px] max-[760px]:text-[10px] text-[#3b4758] outline-none"
-          />
-          <kbd className="whitespace-nowrap rounded-[3px] bg-[#f4f5f7] px-[5px] py-[3px] text-[9px] text-[#9da6b2] max-[760px]:hidden">
-            ⌘ K
-          </kbd>
-        </div>
+        <ThemeToggle />
 
         <div className="relative">
           <button

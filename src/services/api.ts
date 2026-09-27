@@ -37,6 +37,12 @@ export const authApi = {
     postData({ endpoint: "/users/resend-otp", data: payload }),
 
   logout: () => postData({ endpoint: "/users/logout", data: {} }),
+
+   getSessionCount: (): Promise<{ count: number }> =>
+    getData({ endpoint: "/users/sessions/count" }),
+
+  revokeAllSessions: () =>
+    postData({ endpoint: "/users/sessions/revoke-all", data: {} }),
 };
 
 // Members & Roles
@@ -239,4 +245,24 @@ export const taskApi = {
 
   deleteAttachment: (taskId: number, attachmentId: number) =>
     deleteData({ endpoint: `/tasks/${taskId}/attachments/${attachmentId}` }),
+};
+
+
+export interface WorkspaceOverview {
+  workspace_name: string;
+  owner_name: string | null;
+  owner_email: string;
+  created_at: string;
+  member_count: number;
+  role_count: number;
+  project_count: number;
+  task_count: number;
+}
+
+export const workspaceApi = {
+  getOverview: (): Promise<WorkspaceOverview> => getData({ endpoint: "/workspace/overview" }),
+  updateName: (workspace_name: string): Promise<WorkspaceOverview> =>
+    patchData({ endpoint: "/workspace/name", data: { workspace_name } }),
+  deleteWorkspace: (confirm_name: string) =>
+    deleteData({ endpoint: "/workspace/", data: { confirm_name } }),
 };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
 import AuthListener from "@/components/providers/AuthListener";
+import ThemeProvider from "@/components/providers/ThemeProvider";
 import { StoreProvider } from "@/store/StoreProvider";
 import "./globals.css";
 
@@ -27,17 +28,36 @@ export const metadata: Metadata = {
     "The calm, focused workspace for ambitious teams building what matters next.",
 };
 
+// Applies the stored theme to <html> before React hydrates, so there's
+// no flash of the wrong theme on load. Runs as a plain inline script
+// since it must execute before paint, ahead of any React code.
+const themeInitScript = `
+(function () {
+  try {
+    var stored = window.localStorage.getItem("nivora-theme");
+    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var theme = stored || (prefersDark ? "dark" : "light");
+    if (theme === "dark") document.documentElement.classList.add("dark");
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <StoreProvider>
-          <AuthListener />
-          {children}
-          <Toaster position="top-center" richColors />
+          <ThemeProvider>
+            <AuthListener />
+            {children}
+            <Toaster position="top-center" richColors />
+          </ThemeProvider>
         </StoreProvider>
       </body>
     </html>
