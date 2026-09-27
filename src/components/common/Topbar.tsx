@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import ThemeToggle from "@/components/elements/ThemeToggle";
 import { notificationApi, NotificationOut } from "@/services/api";
+import { useSelector } from "react-redux";
+import { selectUserData } from "@/store/slices/userSlice";
 
 const typeMeta: Record<string, { icon: typeof UserPlus; tone: string }> = {
   task_assigned: { icon: UserPlus, tone: "bg-[#eaf0ff] text-[#536fd8]" },
@@ -44,6 +46,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationOut[]>([]);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const userData = useSelector(selectUserData);
+  const displayName = userData.user_name || userData.user_email || "";
+  const initials = displayName
+    ? displayName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -197,7 +205,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           aria-label="Open profile"
           className="grid h-[25px] w-[25px] place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[8px] font-extrabold text-white max-[420px]:hidden"
         >
-          AM
+          {initials}
         </Link>
       </div>
     </header>

@@ -18,6 +18,8 @@ import {
 import { signOut } from "@/services/session";
 import { taskApi } from "@/services/api";
 import { usePermission } from "../../hooks/usePermission";
+import { useSelector } from "react-redux";
+import { selectUserData } from "@/store/slices/userSlice";
 
 interface SidebarProps {
   profileMenuOpen: boolean;
@@ -35,6 +37,12 @@ export default function Sidebar({
   const canViewProjects = usePermission("view_projects");
   const canViewTeamPage = usePermission("view_team_page");
   const canViewSettings = usePermission("view_settings");
+
+  const userData = useSelector(selectUserData);
+  const displayName = userData.user_name || userData.user_email || "";
+  const initials = displayName
+    ? displayName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
 
   const navItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard", visible: true },
@@ -104,12 +112,12 @@ export default function Sidebar({
             className="flex items-center gap-[9px] rounded-[8px] bg-[#f6f7f9] p-[9px_10px] mb-3"
           >
             <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[9px] font-extrabold text-white">
-              AM
+              {initials}
             </span>
             <span className="flex flex-1 flex-col gap-[3px]">
-              <b className="text-[12px] text-[#172238]">Alex Morgan</b>
+              <b className="text-[12px] text-[#172238]">{displayName}</b>
               <small className="text-[10px] text-[#a0a9b5]">
-                Personal workspace
+                {userData.role_name || "Member"}
               </small>
             </span>
             <ChevronDown size={15} className="text-[#8c96a3]" />
@@ -159,21 +167,22 @@ export default function Sidebar({
           Nivora
         </div>
 
-        <Link
-          href="/profile"
-          className="mb-[22px] max-[760px]:hidden flex items-center gap-[9px] rounded-[8px] bg-[#f6f7f9] p-[9px_10px]"
-        >
-          <span className="grid h-[25px] w-[25px] place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[8px] font-extrabold text-white">
-            AM
-          </span>
-          <span className="flex flex-1 flex-col gap-[3px]">
-            <b className="text-[11px] text-[#172238]">Alex Morgan</b>
-            <small className="text-[9px] text-[#a0a9b5]">
-              Personal workspace
-            </small>
-          </span>
-          <ChevronDown size={15} className="text-[#8c96a3]" />
-        </Link>
+          <Link
+            href="/profile"
+            onClick={onCloseProfileMenu}
+            className="flex items-center gap-[9px] rounded-[8px] bg-[#f6f7f9] p-[9px_10px] mb-3"
+          >
+            <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[9px] font-extrabold text-white">
+              {initials}
+            </span>
+            <span className="flex flex-1 flex-col gap-[3px]">
+              <b className="text-[12px] text-[#172238]">{displayName}</b>
+              <small className="text-[10px] text-[#a0a9b5]">
+                {userData.role_name || "Member"}
+              </small>
+            </span>
+            <ChevronDown size={15} className="text-[#8c96a3]" />
+          </Link>
 
         <nav className="flex flex-col gap-[2px] max-[760px]:grid max-[760px]:grid-cols-4 max-[760px]:gap-[4px] max-[760px]:h-full">
           {navItems.map(({ icon: Icon, label, href }) => {

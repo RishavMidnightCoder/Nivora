@@ -23,6 +23,22 @@ export interface SignupPayload {
   password: string;
 }
 
+export interface UpdateProfilePayload {
+  FullName: string;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UserOut {
+  id: number;
+  FullName: string;
+  email: string;
+  created_at: string;
+}
+
 export const authApi = {
   signup: (payload: SignupPayload) =>
     postData({ endpoint: "/users/signup", data: payload }),
@@ -43,6 +59,12 @@ export const authApi = {
 
   revokeAllSessions: () =>
     postData({ endpoint: "/users/sessions/revoke-all", data: {} }),
+
+  updateProfile: (payload: UpdateProfilePayload): Promise<UserOut> =>
+    patchData({ endpoint: "/users/profile", data: payload }),
+
+  changePassword: (payload: ChangePasswordPayload) =>
+    postData({ endpoint: "/users/change-password", data: payload }),
 };
 
 // Members & Roles
