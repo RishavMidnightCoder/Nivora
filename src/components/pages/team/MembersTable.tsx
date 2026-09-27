@@ -73,6 +73,7 @@ export default function MembersTable({
   canInvite,
 }: MembersTableProps) {
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
+  const [confirmingMember, setConfirmingMember] = useState<MemberOut | null>(null);
 
   async function handleSendInvite(id: number) {
     setLoadingIds((prev) => new Set(prev).add(id));
@@ -98,6 +99,12 @@ export default function MembersTable({
         return next;
       });
     }
+  }
+
+  function confirmRemove() {
+    if (!confirmingMember) return;
+    onRemove(confirmingMember.id);
+    setConfirmingMember(null);
   }
 
   const showActionsColumn = canEdit || canDelete || canToggleStatus || canInvite;
@@ -233,7 +240,7 @@ export default function MembersTable({
                     )}
                     {canDelete && (
                       <button
-                        onClick={() => onRemove(member.id)}
+                        onClick={() => setConfirmingMember(member)}
                         aria-label={`Delete ${member.email}`}
                         className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
                       >
@@ -249,6 +256,40 @@ export default function MembersTable({
           </div>
         );
       })}
+
+      {confirmingMember && (
+        <div
+          onClick={() => setConfirmingMember(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#17223866] p-5"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-[12px] bg-white p-6 shadow-[0_20px_60px_#17223840]"
+          >
+            <h3 className="m-0 mb-2 font-display text-[19px] font-medium tracking-[-0.02em] text-[#172238]">
+              Remove this member?
+            </h3>
+            <p className="mb-[20px] text-[12px] text-[#778293]">
+              <b>{confirmingMember.FullName || confirmingMember.email}</b> will lose
+              access to this workspace immediately. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-[9px]">
+              <button
+                onClick={() => setConfirmingMember(null)}
+                className="inline-flex cursor-pointer items-center gap-[7px] rounded-[5px] border border-[#e5e8ed] px-[10px] py-[7px] text-[11px] font-bold text-[#667384]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRemove}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-[7px] bg-[#d35d67] px-[14px] py-[9px] text-[12px] font-bold text-white"
+              >
+                Remove member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

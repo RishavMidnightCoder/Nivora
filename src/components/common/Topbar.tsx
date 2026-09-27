@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,28 +10,30 @@ import {
   UserPlus,
   CircleAlert,
   Check,
+  Users,
 } from "lucide-react";
 import ThemeToggle from "@/components/elements/ThemeToggle";
+import { notificationApi, NotificationOut } from "@/services/api";
 
-interface NotificationPreview {
-  id: number;
-  icon: typeof UserPlus;
-  title: string;
-  time: string;
-  tone: "blue" | "red" | "green";
-}
-
-const notificationsSeed: NotificationPreview[] = [
-  { id: 1, icon: UserPlus, title: "You were assigned to NOVA-142", time: "12 min ago", tone: "blue" },
-  { id: 2, icon: CircleAlert, title: "NOVA-138 is now critical", time: "1 hour ago", tone: "red" },
-  { id: 3, icon: Check, title: "Jordan completed WEB-094", time: "3 hours ago", tone: "green" },
-];
-
-const toneStyles: Record<string, string> = {
-  blue: "bg-[#eaf0ff] text-[#536fd8]",
-  red: "bg-[#fdebed] text-[#d76a71]",
-  green: "bg-[#e6f7ef] text-[#43a77c]",
+const typeMeta: Record<string, { icon: typeof UserPlus; tone: string }> = {
+  task_assigned: { icon: UserPlus, tone: "bg-[#eaf0ff] text-[#536fd8]" },
+  task_completed: { icon: Check, tone: "bg-[#e6f7ef] text-[#43a77c]" },
+  task_critical: { icon: CircleAlert, tone: "bg-[#fdebed] text-[#d76a71]" },
+  member_invited: { icon: Users, tone: "bg-[#f1eafa] text-[#9574ca]" },
 };
+
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -40,7 +42,21 @@ interface TopbarProps {
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationOut[]>([]);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const data = await notificationApi.list();
+      setNotifications(data);
+    } catch {
+      // topbar preview is non-critical — fail silently, no toast needed
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications, pathname]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -53,6 +69,21 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showNotifications]);
+
+  async function handlePreviewClick(notification: NotificationOut) {
+    if (notification.is_read) return;
+    try {
+      await notificationApi.markRead(notification.id);
+      setNotifications((current) =>
+        current.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)),
+      );
+    } catch {
+      // non-critical — the full Notifications page is the source of truth
+    }
+  }
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const preview = notifications.slice(0, 3);
 
   const breadcrumbLabel =
     pathname.startsWith("/tasks") ? "My tasks" :
@@ -91,7 +122,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             className="relative grid cursor-pointer place-items-center text-[#7b8797]"
           >
             <Bell size={18} />
-            <i className="absolute right-0 top-0 h-[6px] w-[6px] rounded-full border border-white bg-[#ef6e6e]" />
+            {unreadCount > 0 && (
+              <i className="absolute right-0 top-0 h-[6px] w-[6px] rounded-full border border-white bg-[#ef6e6e]" />
+            )}
           </button>
 
           {showNotifications && (
@@ -111,22 +144,41 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </div>
 
               <div className="flex flex-col">
-                {notificationsSeed.map((item) => (
-                  <Link
-                    key={item.id}
-                    href="/notifications"
-                    onClick={() => setShowNotifications(false)}
-                    className="flex items-center gap-[10px] rounded-[6px] p-[10px] hover:bg-[#f6f7f9]"
-                  >
-                    <span className={`grid h-[25px] w-[25px] flex-shrink-0 place-items-center rounded-[6px] ${toneStyles[item.tone]}`}>
-                      <item.icon size={15} />
-                    </span>
-                    <span className="flex flex-col gap-[4px]">
-                      <b className="text-[10px] text-[#172238]">{item.title}</b>
-                      <small className="text-[9px] text-[#9aa3af]">{item.time}</small>
-                    </span>
-                  </Link>
-                ))}
+                {preview.length === 0 ? (
+                  <p className="px-[10px] py-[20px] text-center text-[11px] text-[#9ba4b0]">
+                    No notifications yet.
+                  </p>
+                ) : (
+                  preview.map((item) => {
+                    const meta = typeMeta[item.type] ?? { icon: Bell, tone: "bg-[#f2f4f7] text-[#526075]" };
+                    const Icon = meta.icon;
+
+                    return (
+                      <Link
+                        key={item.id}
+                        href="/notifications"
+                        onClick={() => {
+                          setShowNotifications(false);
+                          handlePreviewClick(item);
+                        }}
+                        className="flex items-center gap-[10px] rounded-[6px] p-[10px] hover:bg-[#f6f7f9]"
+                      >
+                        <span className={`grid h-[25px] w-[25px] flex-shrink-0 place-items-center rounded-[6px] ${meta.tone}`}>
+                          <Icon size={15} />
+                        </span>
+                        <span className="flex flex-col gap-[4px]">
+                          <b className={`text-[10px] ${item.is_read ? "font-medium text-[#536174]" : "text-[#172238]"}`}>
+                            {item.title}
+                          </b>
+                          <small className="text-[9px] text-[#9aa3af]">{formatRelativeTime(item.created_at)}</small>
+                        </span>
+                        {!item.is_read && (
+                          <i className="ml-auto h-[6px] w-[6px] flex-shrink-0 rounded-full bg-[#284bce]" />
+                        )}
+                      </Link>
+                    );
+                  })
+                )}
               </div>
 
               <Link

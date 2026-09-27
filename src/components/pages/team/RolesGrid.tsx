@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Settings, Users, MoreHorizontal, ShieldCheck } from "lucide-react";
 import { RoleOut } from "@/services/api";
 import Tooltip from "@/components/widgets/Tooltip";
@@ -14,6 +15,14 @@ interface RolesGridProps {
 const ALL_PERMISSION_LABELS = PERMISSION_DEFINITIONS.map((p) => p.label);
 
 export default function RolesGrid({ roles, onEdit, onDelete, canEdit, canDelete }: RolesGridProps) {
+  const [confirmingRole, setConfirmingRole] = useState<RoleOut | null>(null);
+
+  function confirmDelete() {
+    if (!confirmingRole) return;
+    onDelete(confirmingRole.id);
+    setConfirmingRole(null);
+  }
+
   return (
     <div className="grid grid-cols-2 max-[760px]:grid-cols-1 gap-[14px] p-[20px_22px_24px]">
       {roles.map((role) => {
@@ -81,7 +90,7 @@ export default function RolesGrid({ roles, onEdit, onDelete, canEdit, canDelete 
                 )}
                 {canDelete && (
                   <button
-                    onClick={() => onDelete(role.id)}
+                    onClick={() => setConfirmingRole(role)}
                     className="cursor-pointer text-[10px] font-extrabold text-[#d45b63]"
                   >
                     Delete
@@ -98,6 +107,47 @@ export default function RolesGrid({ roles, onEdit, onDelete, canEdit, canDelete 
           </div>
         );
       })}
+
+      {confirmingRole && (
+        <div
+          onClick={() => setConfirmingRole(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#17223866] p-5"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[420px] rounded-[12px] bg-white p-6 shadow-[0_20px_60px_#17223840]"
+          >
+            <h3 className="m-0 mb-2 font-display text-[19px] font-medium tracking-[-0.02em] text-[#172238]">
+              Delete this role?
+            </h3>
+            <p className="mb-[20px] text-[12px] text-[#778293]">
+              <b>{confirmingRole.name}</b> will be permanently deleted. This cannot be
+              undone.
+              {confirmingRole.member_count > 0 && (
+                <>
+                  {" "}
+                  Note: your backend already blocks deleting a role assigned to
+                  members, so this will fail if members still use it.
+                </>
+              )}
+            </p>
+            <div className="flex justify-end gap-[9px]">
+              <button
+                onClick={() => setConfirmingRole(null)}
+                className="inline-flex cursor-pointer items-center gap-[7px] rounded-[5px] border border-[#e5e8ed] px-[10px] py-[7px] text-[11px] font-bold text-[#667384]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-[7px] bg-[#d35d67] px-[14px] py-[9px] text-[12px] font-bold text-white"
+              >
+                Delete role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

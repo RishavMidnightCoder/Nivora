@@ -266,3 +266,18 @@ export const workspaceApi = {
   deleteWorkspace: (confirm_name: string) =>
     deleteData({ endpoint: "/workspace/", data: { confirm_name } }),
 };
+
+
+export interface NotificationOut {
+  id: number;
+  type: string;
+  title: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export const notificationApi = {
+  list: (): Promise<NotificationOut[]> => getData({ endpoint: "/notifications/" }),
+  markRead: (id: number) => patchData({ endpoint: `/notifications/${id}/read`, data: {} }),
+  markAllRead: () => postData({ endpoint: "/notifications/mark-all-read", data: {} }),
+};
