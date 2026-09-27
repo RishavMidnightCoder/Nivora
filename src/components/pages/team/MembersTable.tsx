@@ -1,6 +1,7 @@
 import { Trash2, Pencil, Send, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { MemberOut } from "@/services/api";
+import Tooltip from "@/components/widgets/Tooltip";
 
 const statusStyles: Record<string, { text: string; dot: string }> = {
   active: { text: "text-[#47ae7e]", dot: "bg-[#75d4a2]" },
@@ -41,6 +42,8 @@ function initialsFor(member: MemberOut) {
 
 interface MembersTableProps {
   members: MemberOut[];
+  /** The logged-in user's own user_id — used to block self-removal/self-deactivation. */
+  currentUserId: number;
   onToggleStatus: (id: number) => void;
   onRemove: (id: number) => void;
   onEdit: (id: number) => void;
@@ -58,6 +61,7 @@ interface MembersTableProps {
 
 export default function MembersTable({
   members,
+  currentUserId,
   onToggleStatus,
   onRemove,
   onEdit,
@@ -112,6 +116,17 @@ export default function MembersTable({
         const status = normalizeStatus(member.status);
         const style = statusStyles[status] ?? statusStyles.inactive;
         const isPending = status === "pending";
+        // The workspace owner's own membership row — created at signup,
+        // tied to the "Owner" role which can never be renamed or edited
+        // (see RoleEditorModal / RolesGrid). Never let this row be
+        // deactivated, edited, or removed by anyone.
+        const isOwnerRow = member.role_name === "Owner";
+        // The row belonging to whoever is currently logged in and viewing
+        // this table — even with delete/toggle permission, a member
+        // should never be able to remove or deactivate their own account
+        // from this screen.
+        const isSelfRow = member.user_id === currentUserId;
+        const isLocked = isOwnerRow || isSelfRow;
 
         return (
           <div
@@ -155,61 +170,77 @@ export default function MembersTable({
 
             {showActionsColumn ? (
               <div className="flex items-center justify-end gap-[9px]">
-                {isPending
-                  ? canDelete && (
-                      <button
-                        onClick={() => handleCancelInvite(member.id)}
-                        disabled={loadingIds.has(member.id)}
-                        className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#d35d67] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {loadingIds.has(member.id) ? (
-                          <Loader2 size={11} className="animate-spin" />
-                        ) : (
-                          "Cancel invite"
-                        )}
-                      </button>
-                    )
-                  : status === "active"
-                    ? canToggleStatus && (
-                        <button
-                          onClick={() => onToggleStatus(member.id)}
-                          className="cursor-pointer whitespace-nowrap text-[10px] font-extrabold text-[#284bce]"
-                        >
-                          Deactivate
-                        </button>
-                      )
-                    : canInvite && (
-                        <button
-                          onClick={() => handleSendInvite(member.id)}
-                          disabled={loadingIds.has(member.id)}
-                          className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#284bce] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {loadingIds.has(member.id) ? (
-                            <Loader2 size={11} className="animate-spin" />
-                          ) : (
-                            <>
-                              <Send size={11} /> Send invite
-                            </>
+                {isLocked ? (
+                  <Tooltip
+                    content={
+                      isOwnerRow
+                        ? "The workspace owner can't be deactivated or removed."
+                        : "You can't remove or deactivate your own account."
+                    }
+                  >
+                    <span className="whitespace-nowrap text-[10px] font-extrabold text-[#c3c9d1]">
+                      {isOwnerRow ? "Owner" : "You"}
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <>
+                    {isPending
+                      ? canDelete && (
+                          <button
+                            onClick={() => handleCancelInvite(member.id)}
+                            disabled={loadingIds.has(member.id)}
+                            className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#d35d67] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {loadingIds.has(member.id) ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              "Cancel invite"
+                            )}
+                          </button>
+                        )
+                      : status === "active"
+                        ? canToggleStatus && (
+                            <button
+                              onClick={() => onToggleStatus(member.id)}
+                              className="cursor-pointer whitespace-nowrap text-[10px] font-extrabold text-[#284bce]"
+                            >
+                              Deactivate
+                            </button>
+                          )
+                        : canInvite && (
+                            <button
+                              onClick={() => handleSendInvite(member.id)}
+                              disabled={loadingIds.has(member.id)}
+                              className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-[10px] font-extrabold text-[#284bce] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {loadingIds.has(member.id) ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <Send size={11} /> Send invite
+                                </>
+                              )}
+                            </button>
                           )}
-                        </button>
-                      )}
-                {canEdit && (
-                  <button
-                    onClick={() => onEdit(member.id)}
-                    aria-label={`Edit ${member.email}`}
-                    className="cursor-pointer text-[#c3c9d1] hover:text-[#284bce]"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={() => onRemove(member.id)}
-                    aria-label={`Delete ${member.email}`}
-                    className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(member.id)}
+                        aria-label={`Edit ${member.email}`}
+                        className="cursor-pointer text-[#c3c9d1] hover:text-[#284bce]"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => onRemove(member.id)}
+                        aria-label={`Delete ${member.email}`}
+                        className="cursor-pointer text-[#c3c9d1] hover:text-[#d35d67]"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             ) : (

@@ -26,17 +26,24 @@ export const { setRoleAccess, clearAccess } = accessSlice.actions;
 
 export const selectRoleAccess = (state: RootState) => state.access.roleAccess;
 
+// "*" means full access (Owner role) — every check below must treat it
+// as satisfying any permission, mirroring the backend's
+// src/team/permissions.py::require_permission check.
+function grantsAll(roleAccess: string[]): boolean {
+  return roleAccess.includes("*");
+}
+
 export const hasPermission = (permission: string) =>
   (state: RootState): boolean =>
-    state.access.roleAccess.includes(permission);
+    grantsAll(state.access.roleAccess) || state.access.roleAccess.includes(permission);
 
 export const hasAnyOf = (permissions: string[]) =>
   (state: RootState): boolean =>
-    permissions.some((p) => state.access.roleAccess.includes(p));
+    grantsAll(state.access.roleAccess) || permissions.some((p) => state.access.roleAccess.includes(p));
 
 export const hasAllOf = (permissions: string[]) =>
   (state: RootState): boolean =>
-    permissions.every((p) => state.access.roleAccess.includes(p));
+    grantsAll(state.access.roleAccess) || permissions.every((p) => state.access.roleAccess.includes(p));
 
 export default accessSlice.reducer;
 

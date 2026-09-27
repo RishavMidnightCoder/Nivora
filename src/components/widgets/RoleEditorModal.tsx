@@ -31,13 +31,22 @@ export default function RoleEditorModal({
 }: RoleEditorModalProps) {
   useLockBodyScroll();
 
+  // The Owner role is stored as permissions: ["*"] (see
+  // src/users/controller.py::_get_or_create_owner_role). It always has
+  // every permission and can't be edited down — editing it here would
+  // let someone accidentally lock themselves out of their own workspace.
+  const isOwnerRole = (role?.permissions ?? []).includes("*");
+
+  const allPermissionKeys = PERMISSION_DEFINITIONS.map((p) => p.key);
+
   const [name, setName] = useState(role?.name ?? "");
   const [description, setDescription] = useState(role?.description ?? "");
   const [permissions, setPermissions] = useState<Set<string>>(
-    new Set(role?.permissions ?? []),
+    new Set(isOwnerRole ? allPermissionKeys : role?.permissions ?? []),
   );
 
   function togglePermission(key: PermissionKey) {
+    if (isOwnerRole) return;
     setPermissions((current) => {
       const next = new Set(current);
       if (next.has(key)) next.delete(key);
@@ -47,6 +56,7 @@ export default function RoleEditorModal({
   }
 
   function toggleModule(group: string) {
+    if (isOwnerRole) return;
     const moduleKeys = getModuleKeys(group);
     const allSelected = moduleKeys.every((k) => permissions.has(k));
 
@@ -67,7 +77,10 @@ export default function RoleEditorModal({
       id: role?.id,
       name,
       description,
-      permissions: Array.from(permissions),
+      // Preserve the wildcard on save instead of expanding it into every
+      // individual key — keeps it in sync automatically if new
+      // permissions are added later, and matches what the backend expects.
+      permissions: isOwnerRole ? ["*"] : Array.from(permissions),
     });
   }
 
@@ -105,7 +118,8 @@ export default function RoleEditorModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Campaign Viewer"
-              className="min-h-[43px] rounded-[6px] border border-[#e5e8ed] px-3 text-[13px] font-normal text-[#182230] outline-none focus:border-[#7890e5]"
+              disabled={isOwnerRole}
+              className="min-h-[43px] rounded-[6px] border border-[#e5e8ed] px-3 text-[13px] font-normal text-[#182230] outline-none focus:border-[#7890e5] disabled:cursor-not-allowed disabled:bg-[#f8f9fb] disabled:text-[#9ba4b0]"
             />
           </label>
 
@@ -115,7 +129,8 @@ export default function RoleEditorModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Manage engineering delivery"
-              className="min-h-[43px] rounded-[6px] border border-[#e5e8ed] px-3 text-[13px] font-normal text-[#182230] outline-none focus:border-[#7890e5]"
+              disabled={isOwnerRole}
+              className="min-h-[43px] rounded-[6px] border border-[#e5e8ed] px-3 text-[13px] font-normal text-[#182230] outline-none focus:border-[#7890e5] disabled:cursor-not-allowed disabled:bg-[#f8f9fb] disabled:text-[#9ba4b0]"
             />
           </label>
 
@@ -124,9 +139,15 @@ export default function RoleEditorModal({
               Permissions
             </span>
             <small className="text-[10px] text-[#9ba4b0]">
-              {permissions.size} selected
+              {isOwnerRole ? "All permissions (Owner)" : `${permissions.size} selected`}
             </small>
           </div>
+
+          {isOwnerRole && (
+            <p className="mb-3 rounded-[6px] bg-[#f0f4ff] px-3 py-2 text-[11px] text-[#536174]">
+              The Owner role always has full access and can&apos;t be changed.
+            </p>
+          )}
 
           <div className="flex flex-col gap-4">
             {applicationModules.map((group) => {
@@ -152,7 +173,8 @@ export default function RoleEditorModal({
                     <button
                       type="button"
                       onClick={() => toggleModule(group)}
-                      className="cursor-pointer text-[10px] font-bold text-[#284bce]"
+                      disabled={isOwnerRole}
+                      className="cursor-pointer text-[10px] font-bold text-[#284bce] disabled:cursor-not-allowed disabled:text-[#c3c9d1]"
                     >
                       {allSelected ? "Deselect all" : "Select all"}
                     </button>
@@ -161,7 +183,9 @@ export default function RoleEditorModal({
                   {modulePerms.map((perm, index) => (
                     <label
                       key={perm.key}
-                      className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8f9fb] ${
+                      className={`flex items-center justify-between gap-3 px-4 py-3 hover:bg-[#f8f9fb] ${
+                        isOwnerRole ? "cursor-not-allowed" : "cursor-pointer"
+                      } ${
                         index !== modulePerms.length - 1
                           ? "border-b border-[#e5e8ed]"
                           : ""
@@ -179,10 +203,11 @@ export default function RoleEditorModal({
                         type="checkbox"
                         aria-label={perm.label}
                         checked={permissions.has(perm.key)}
+                        disabled={isOwnerRole}
                         onChange={() =>
                           togglePermission(perm.key as PermissionKey)
                         }
-                        className="h-[15px] w-[15px] flex-shrink-0 cursor-pointer accent-[#284bce]"
+                        className="h-[15px] w-[15px] flex-shrink-0 accent-[#284bce] disabled:cursor-not-allowed"
                       />
                     </label>
                   ))}
@@ -201,7 +226,7 @@ export default function RoleEditorModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={saving}
+            disabled={saving || isOwnerRole}
             className="inline-flex min-h-[38px] cursor-pointer items-center gap-2 rounded-[7px] bg-[#284bce] px-[14px] text-[13px] font-bold text-white shadow-[0_3px_8px_#284bce2c] disabled:opacity-60"
           >
             {saving ? "Saving…" : role?.id ? "Save changes" : "Create Role"}

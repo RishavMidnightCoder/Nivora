@@ -10,6 +10,8 @@ import RoleEditorModal from "../../widgets/RoleEditorModal";
 import MemberEditorModal from "../../widgets/memberEditorModal";
 import { teamApi, MemberOut, RoleOut } from "@/services/api";
 import { usePermission } from "../../../hooks/usePermission";
+import { useSelector } from "react-redux";
+import { selectUserData } from "@/store/slices/userSlice";
 
 export default function Team() {
   const [members, setMembers] = useState<MemberOut[]>([]);
@@ -25,6 +27,8 @@ export default function Team() {
   const canCreateRoles = usePermission("create_roles");
   const canEditRoles = usePermission("edit_roles");
   const canDeleteRoles = usePermission("delete_roles");
+  const currentUser = useSelector(selectUserData);
+  const currentUserId = Number(currentUser.user_id);
 
   const [tab, setTab] = useState<"members" | "roles">(
     canViewMembers ? "members" : "roles",
@@ -290,8 +294,9 @@ export default function Team() {
               No members yet.
             </div>
           ) : (
-            <MembersTable
+              <MembersTable
               members={members}
+              currentUserId={currentUserId}
               onToggleStatus={toggleMemberStatus}
               onRemove={removeMember}
               onEdit={openEditMember}
