@@ -5,8 +5,8 @@ import axios, {
 } from "axios";
 import { toast } from "sonner";
 
-// Must be "/backend" (same-origin proxy defined in next.config.ts).
-const baseURL = process.env.NEXT_PUBLIC_API_URL!;
+// Same-origin proxy defined in next.config.ts. Do NOT read this from an env var.
+const baseURL = "/backend";
 
 const apiInstance: AxiosInstance = axios.create({
   baseURL,
