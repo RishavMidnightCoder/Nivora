@@ -7,9 +7,18 @@ if (!BACKEND_URL) {
 }
 
 const nextConfig: NextConfig = {
+  skipTrailingSlashRedirect: true,
   async rewrites() {
     return [
-      { source: "/backend/:path*", destination: `${BACKEND_URL}/:path*` },
+      // keep the trailing slash when the browser sends one
+      {
+        source: "/backend/:path*/",
+        destination: `${BACKEND_URL}/:path*/`,
+      },
+      {
+        source: "/backend/:path*",
+        destination: `${BACKEND_URL}/:path*`,
+      },
     ];
   },
 };
