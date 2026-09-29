@@ -50,17 +50,16 @@ export async function middleware(request: NextRequest) {
       const payload = await verifyAccessToken(accessToken);
       permissions = payload.permissions ?? [];
       hasValidAccessToken = true;
-    } catch {
-      // Expired or tampered access token.
+    } catch (e) {
+      // Expired or tampered access token (or SECRET_KEY mismatch).
+      console.error("access token verify failed:", e);
     }
   }
 
   // Access token missing/expired but a refresh token exists: let the
-  // request through. Your gateway.ts interceptor / AuthListener flow
-  // is responsible for calling /users/refresh and re-hydrating the
-  // session; middleware can't safely mint new cookies mid-navigation.
-  // We skip the permission check in this case rather than bounce the
-  // user to /dashboard based on stale/no data.
+  // request through. The axios interceptor / AuthListener flow calls
+  // /users/refresh and re-hydrates the session; middleware can't safely
+  // mint new cookies mid-navigation.
   if (!hasValidAccessToken) {
     if (!refreshToken) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -81,9 +80,11 @@ export const config = {
     /*
      * Run on everything except:
      * - /api routes
+     * - /backend routes (proxied to FastAPI via next.config.ts rewrites;
+     *   they must stay reachable when logged out, e.g. /backend/users/login)
      * - Next internals (_next/static, _next/image)
      * - static assets (favicon, images, etc.)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|backend|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

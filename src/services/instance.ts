@@ -5,12 +5,8 @@ import axios, {
 } from "axios";
 import { toast } from "sonner";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-if (!baseURL && typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
-  console.warn("NEXT_PUBLIC_API_URL is not set — API calls will fail.");
-}
+// Must be "/backend" (same-origin proxy defined in next.config.ts).
+const baseURL = process.env.NEXT_PUBLIC_API_URL!;
 
 const apiInstance: AxiosInstance = axios.create({
   baseURL,

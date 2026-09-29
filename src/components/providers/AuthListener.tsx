@@ -9,14 +9,12 @@ import { setUserData, clearUserData } from "@/store/slices/userSlice";
 import { setRoleAccess, clearAccess } from "@/store/slices/accessSlice";
 import type { AppDispatch } from "@/store";
 
-// Adjust this to whatever base URL / http client your app already uses
-// (axios instance, fetch wrapper, etc.) — this assumes a plain fetch
-// against an env-configured API origin.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// Must be "/backend" (same-origin proxy defined in next.config.ts).
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 // Routes where a visitor is expected to be logged out — skip the
 // session check entirely instead of firing a request that will
-// always 401. Adjust to match your actual route paths.
+// always 401.
 const PUBLIC_ROUTES = ["/", "/login", "/signup"];
 
 export default function AuthListener() {
@@ -33,9 +31,8 @@ export default function AuthListener() {
 
   useEffect(() => {
     if (PUBLIC_ROUTES.includes(pathname)) {
-      // Don't call /users/me on pages where being logged out is the
-      // expected state — just make sure stale redux-persist state
-      // doesn't linger and grant permissions that no longer apply.
+      // Make sure stale redux-persist state doesn't linger and grant
+      // permissions that no longer apply.
       dispatch(clearUserData());
       dispatch(clearAccess());
       return;
@@ -50,9 +47,6 @@ export default function AuthListener() {
         });
 
         if (!res.ok) {
-          // No valid session (e.g. cookie expired/missing) — make sure
-          // stale redux-persist state doesn't grant permissions that no
-          // longer apply.
           if (!cancelled) {
             dispatch(clearUserData());
             dispatch(clearAccess());
@@ -74,10 +68,7 @@ export default function AuthListener() {
     }
 
     // Runs once per route change (this component lives at the root
-    // layout), so every non-public page load re-syncs Redux from the
-    // DB instead of trusting whatever redux-persist last had in
-    // localStorage — covers the case where an admin edited this
-    // user's role since their last visit.
+    // layout), so every non-public page load re-syncs Redux from the DB.
     hydrateSession();
 
     return () => {

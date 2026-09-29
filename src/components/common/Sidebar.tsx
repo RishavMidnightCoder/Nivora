@@ -167,22 +167,22 @@ export default function Sidebar({
           Nivora
         </div>
 
-          <Link
-            href="/profile"
-            onClick={onCloseProfileMenu}
-            className="flex items-center gap-[9px] rounded-[8px] bg-[#f6f7f9] p-[9px_10px] mb-3"
-          >
-            <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[9px] font-extrabold text-white">
-              {initials}
-            </span>
-            <span className="flex flex-1 flex-col gap-[3px]">
-              <b className="text-[12px] text-[#172238]">{displayName}</b>
-              <small className="text-[10px] text-[#a0a9b5]">
-                {userData.role_name || "Member"}
-              </small>
-            </span>
-            <ChevronDown size={15} className="text-[#8c96a3]" />
-          </Link>
+        {/* Desktop-only profile card: hidden on mobile (bottom bar) — FIX */}
+        <Link
+          href="/profile"
+          className="mb-3 flex items-center gap-[9px] rounded-[8px] bg-[#f6f7f9] p-[9px_10px] max-[760px]:hidden"
+        >
+          <span className="grid h-[30px] w-[30px] flex-shrink-0 place-items-center rounded-full border-2 border-white bg-[#dc9a67] text-[9px] font-extrabold text-white">
+            {initials}
+          </span>
+          <span className="flex flex-1 flex-col gap-[3px]">
+            <b className="text-[12px] text-[#172238]">{displayName}</b>
+            <small className="text-[10px] text-[#a0a9b5]">
+              {userData.role_name || "Member"}
+            </small>
+          </span>
+          <ChevronDown size={15} className="text-[#8c96a3]" />
+        </Link>
 
         <nav className="flex flex-col gap-[2px] max-[760px]:grid max-[760px]:grid-cols-4 max-[760px]:gap-[4px] max-[760px]:h-full">
           {navItems.map(({ icon: Icon, label, href }) => {
